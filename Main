@@ -1,0 +1,74 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Text.Json;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        // 1. Validate Arguments
+        if (args.Length < 2)
+        {
+            Console.WriteLine("Usage: <location type (log|source)> <environment name>");
+            return;
+        }
+
+        string locationType = args[0].ToLower();
+        string envName = args[1];
+        string configPath = "config.json";
+
+        if (!File.Exists(configPath))
+        {
+            Console.WriteLine("Error: config.json not found.");
+            return;
+        }
+
+        try
+        {
+            // 2. Load and Parse JSON
+            string jsonString = File.ReadAllText(configPath);
+            var config = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(jsonString);
+
+            // 3. Navigate the Dictionary
+            if (config != null && config.ContainsKey(envName))
+            {
+                if (config[envName].TryGetValue(locationType, out string targetPath))
+                {
+                    OpenFolder(targetPath);
+                }
+                else
+                {
+                    Console.WriteLine($"Error: Location type '{locationType}' not found for environment '{envName}'.");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Error: Environment '{envName}' not found in config.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred: {ex.Message}");
+        }
+    }
+
+    static void OpenFolder(string path)
+    {
+        if (Directory.Exists(path))
+        {
+            Console.WriteLine($"Opening: {path}");
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = path,
+                UseShellExecute = true,
+                Verb = "open"
+            });
+        }
+        else
+        {
+            Console.WriteLine($"Error: The path '{path}' does not exist on this machine.");
+        }
+    }
+}
